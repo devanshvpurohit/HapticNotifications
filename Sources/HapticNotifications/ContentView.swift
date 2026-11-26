@@ -112,7 +112,7 @@ struct ContentView: View {
                 HStack(spacing: 10) {
                     Slider(value: $customHz, in: 100...2000, step: 10)
                     Button("Play Tone") {
-                        engine.playCustomTone(hz: customHz, ms: 120)
+                        engine.playCustomTone(hz: customHz, ms: 500)
                     }
                     .buttonStyle(.bordered)
                 }
