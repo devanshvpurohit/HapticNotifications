@@ -1,7 +1,7 @@
 import AppKit
 import AudioToolbox
 import Combine
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Haptic notification patterns driven directly on the Force Touch trackpad motor.
 enum HapticPattern: String, CaseIterable, Identifiable {
@@ -69,23 +69,21 @@ final class HapticEngine: ObservableObject {
             notificationStatus = "Unbundled binary (run .app)"
             return
         }
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            let status = settings.authorizationStatus
-            Task { @MainActor in
-                switch status {
-                case .authorized, .provisional:
-                    self.notificationsAuthorized = true
-                    self.notificationStatus = "Notifications Allowed"
-                case .denied:
-                    self.notificationsAuthorized = false
-                    self.notificationStatus = "Notifications Denied (enable in System Settings)"
-                case .notDetermined:
-                    self.notificationsAuthorized = false
-                    self.notificationStatus = "Permission Not Requested"
-                @unknown default:
-                    self.notificationsAuthorized = false
-                    self.notificationStatus = "Unknown Permission State"
-                }
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            switch settings.authorizationStatus {
+            case .authorized, .provisional:
+                self.notificationsAuthorized = true
+                self.notificationStatus = "Notifications Allowed"
+            case .denied:
+                self.notificationsAuthorized = false
+                self.notificationStatus = "Notifications Denied (enable in System Settings)"
+            case .notDetermined:
+                self.notificationsAuthorized = false
+                self.notificationStatus = "Permission Not Requested"
+            @unknown default:
+                self.notificationsAuthorized = false
+                self.notificationStatus = "Unknown Permission State"
             }
         }
     }

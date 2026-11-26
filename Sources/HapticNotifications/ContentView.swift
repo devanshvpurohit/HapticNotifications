@@ -166,13 +166,12 @@ struct ContentView: View {
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3, repeats: false)
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
 
-        UNUserNotificationCenter.current().add(request) { error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    self.scheduledNotificationText = "Failed to schedule: \(error.localizedDescription)"
-                } else {
-                    self.scheduledNotificationText = "Notification scheduled in 3 seconds..."
-                }
+        Task {
+            do {
+                try await UNUserNotificationCenter.current().add(request)
+                self.scheduledNotificationText = "Notification scheduled in 3 seconds..."
+            } catch {
+                self.scheduledNotificationText = "Failed to schedule: \(error.localizedDescription)"
             }
         }
     }
