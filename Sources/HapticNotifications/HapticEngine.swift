@@ -31,9 +31,16 @@ final class HapticEngine: ObservableObject {
     static let shared = HapticEngine()
 
     @Published var notificationCount: Int = 0
-    @Published var selectedPattern: HapticPattern = .doublePulse
-    @Published var intensity: Float = 0.9
-    @Published var playSystemSound: Bool = false
+    @Published var lastTriggerSource: String = "—"
+    @Published var selectedPattern: HapticPattern = .doublePulse {
+        didSet { UserDefaults.standard.set(selectedPattern.rawValue, forKey: "selectedPattern") }
+    }
+    @Published var intensity: Float = 0.9 {
+        didSet { UserDefaults.standard.set(intensity, forKey: "intensity") }
+    }
+    @Published var playSystemSound: Bool = false {
+        didSet { UserDefaults.standard.set(playSystemSound, forKey: "playSystemSound") }
+    }
     @Published private(set) var motorConnected: Bool = false
     @Published private(set) var motorStatus: String = "Initializing..."
     @Published private(set) var notificationsAuthorized: Bool = false
@@ -41,8 +48,33 @@ final class HapticEngine: ObservableObject {
 
     private let actuator = MultitouchActuator()
     private var activeTask: Task<Void, Never>?
+    private var wakeObserver: NSObjectProtocol?
 
     private init() {
+        if let savedPattern = UserDefaults.standard.string(forKey: "selectedPattern"),
+           let pattern = HapticPattern(rawValue: savedPattern) {
+            self.selectedPattern = pattern
+        }
+        if UserDefaults.standard.object(forKey: "intensity") != nil {
+            self.intensity = UserDefaults.standard.float(forKey: "intensity")
+        }
+        self.playSystemSound = UserDefaults.standard.bool(forKey: "playSystemSound")
+
+        connectMotor()
+
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.reconnectMotorOnWake()
+            }
+        }
+    }
+
+    private func reconnectMotorOnWake() {
+        actuator.close()
         connectMotor()
     }
 
@@ -103,8 +135,9 @@ final class HapticEngine: ObservableObject {
     }
 
     /// Increments notification count and plays the selected haptic pattern.
-    func recordNotification() {
+    func recordNotification(source: String = "App") {
         notificationCount += 1
+        lastTriggerSource = source
         playPattern(selectedPattern)
     }
 

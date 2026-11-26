@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "HapticNotifications",
-    platforms: [.macOS("12.0")],
+    platforms: [.macOS("13.0")],
     products: [
         .executable(name: "HapticNotifications", targets: ["HapticNotifications"])
     ],

@@ -5,9 +5,9 @@ struct HapticNotificationsApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        WindowGroup {
+        MenuBarExtra("Haptic Notifications", systemImage: "bell.badge.waveform.fill") {
             ContentView()
         }
-        .windowStyle(.titleBar)
+        .menuBarExtraStyle(.window)
     }
 }

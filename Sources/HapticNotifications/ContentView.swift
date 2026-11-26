@@ -3,70 +3,102 @@ import UserNotifications
 
 struct ContentView: View {
     @ObservedObject private var engine = HapticEngine.shared
+    @ObservedObject private var monitor = NotificationMonitor.shared
     @State private var scheduledNotificationText: String? = nil
-    @State private var customHz: Double = 440
+    @State private var customHz: Double = 180
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Header & Motor Status
-            VStack(spacing: 6) {
-                Text("Haptic Notifications")
-                    .font(.title2)
-                    .fontWeight(.bold)
+        VStack(spacing: 14) {
+            // Header & Status
+            VStack(spacing: 5) {
+                HStack {
+                    Text("Haptic Notifications")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    Spacer()
+                    Text("24/7 Menu Bar")
+                        .font(.caption2)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.15))
+                        .foregroundColor(.blue)
+                        .cornerRadius(4)
+                }
 
                 HStack(spacing: 6) {
                     Circle()
                         .fill(engine.motorConnected ? Color.green : Color.orange)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 7, height: 7)
                     Text(engine.motorStatus)
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    Spacer()
                 }
 
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(engine.notificationsAuthorized ? Color.green : Color.orange)
-                        .frame(width: 8, height: 8)
-                    Text(engine.notificationStatus)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    if !engine.notificationsAuthorized {
-                        Button("Open Settings") {
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
-                                NSWorkspace.shared.open(url)
-                            }
+                        .fill(monitor.isWatching ? Color.green : (monitor.isAccessibilityGranted ? Color.yellow : Color.orange))
+                        .frame(width: 7, height: 7)
+                    if monitor.isWatching {
+                        Text("Watching all Mac notifications")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else if monitor.isAccessibilityGranted {
+                        Text("Accessibility granted (paused)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        Text("Needs Accessibility to watch all apps")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Allow") {
+                            monitor.requestAccessibilityPermission()
                         }
                         .font(.caption)
-                        .buttonStyle(.link)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.mini)
                     }
+                    Spacer()
                 }
             }
 
-            // Notification Counter Card
-            HStack(spacing: 16) {
-                Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(.blue)
+            // Counter & System-wide Toggle
+            VStack(spacing: 10) {
+                HStack(spacing: 12) {
+                    Image(systemName: "bell.badge.fill")
+                        .font(.system(size: 26))
+                        .foregroundColor(.blue)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Notifications Received")
-                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Notifications Triggered")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("Last: \(engine.lastTriggerSource)")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
                     Text("\(engine.notificationCount)")
-                        .font(.system(size: 34, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 28, weight: .semibold, design: .monospaced))
                         .foregroundColor(engine.notificationCount > 0 ? .green : .primary)
                 }
 
-                Spacer()
+                Toggle("Vibrate on all Mac notifications", isOn: $monitor.isEnabled)
+                    .font(.subheadline)
             }
-            .padding(12)
+            .padding(10)
             .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(10)
+            .cornerRadius(8)
 
             // Pattern & Settings Card
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Text("Haptic Pattern")
-                        .font(.headline)
+                    Text("Pattern")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     Spacer()
                     Picker("", selection: $engine.selectedPattern) {
                         ForEach(HapticPattern.allCases) { pattern in
@@ -74,34 +106,34 @@ struct ContentView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 170)
+                    .frame(width: 165)
                 }
 
                 Text(engine.selectedPattern.subtitle)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundColor(.secondary)
 
                 HStack {
                     Text("Intensity")
-                        .font(.subheadline)
+                        .font(.caption)
                     Slider(value: $engine.intensity, in: 0.2...1.0, step: 0.05)
                     Text("\(Int(engine.intensity * 100))%")
                         .font(.caption.monospacedDigit())
-                        .frame(width: 38, alignment: .trailing)
+                        .frame(width: 34, alignment: .trailing)
                 }
 
                 Toggle("Also play Mac speaker alert sound", isOn: $engine.playSystemSound)
-                    .font(.subheadline)
+                    .font(.caption)
             }
-            .padding(12)
+            .padding(10)
             .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(10)
+            .cornerRadius(8)
 
-            // Custom Frequency Tester (powered by MultitouchSupport)
-            VStack(alignment: .leading, spacing: 8) {
+            // Custom Frequency Tester
+            VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text("Trackpad Tone Test")
-                        .font(.subheadline)
+                        .font(.caption)
                         .fontWeight(.medium)
                     Spacer()
                     Text("\(Int(customHz)) Hz")
@@ -109,52 +141,70 @@ struct ContentView: View {
                         .foregroundColor(.secondary)
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Slider(value: $customHz, in: 100...2000, step: 10)
                     Button("Play Tone") {
                         engine.playCustomTone(hz: customHz, ms: 500)
                     }
                     .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             }
-            .padding(12)
+            .padding(10)
             .background(Color(NSColor.controlBackgroundColor))
-            .cornerRadius(10)
+            .cornerRadius(8)
 
             if let text = scheduledNotificationText {
                 Text(text)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundColor(.orange)
             }
 
             // Action Buttons
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Button(action: {
-                    engine.recordNotification()
+                    engine.recordNotification(source: "Manual Test")
                 }) {
                     Label("Trigger Pattern", systemImage: "hand.tap.fill")
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.borderedProminent)
 
                 Button(action: {
                     scheduleTestNotification()
                 }) {
-                    Label("Test Notification (3s)", systemImage: "clock.arrow.circlepath")
+                    Label("Test Banner (3s)", systemImage: "clock.arrow.circlepath")
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.bordered)
             }
+
+            Divider()
+
+            HStack {
+                if !monitor.isAccessibilityGranted {
+                    Button("Accessibility Settings") {
+                        monitor.openAccessibilitySettings()
+                    }
+                    .buttonStyle(.link)
+                    .font(.caption)
+                }
+                Spacer()
+                Button("Quit") {
+                    NSApplication.shared.terminate(nil)
+                }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
         }
-        .padding(20)
-        .frame(width: 440)
+        .padding(14)
+        .frame(width: 370)
     }
 
     private func scheduleTestNotification() {
         guard Bundle.main.bundleIdentifier != nil else {
-            self.scheduledNotificationText = "⚠️ UNUserNotificationCenter requires running inside HapticNotifications.app"
+            self.scheduledNotificationText = "⚠️ Requires running inside HapticNotifications.app"
             return
         }
 
@@ -171,14 +221,8 @@ struct ContentView: View {
                 try await UNUserNotificationCenter.current().add(request)
                 self.scheduledNotificationText = "Notification scheduled in 3 seconds..."
             } catch {
-                self.scheduledNotificationText = "Failed to schedule: \(error.localizedDescription)"
+                self.scheduledNotificationText = "Failed: \(error.localizedDescription)"
             }
         }
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView()
     }
 }

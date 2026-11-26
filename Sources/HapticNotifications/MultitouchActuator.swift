@@ -145,7 +145,15 @@ final class MultitouchActuator: @unchecked Sendable {
         }
 
         guard let act = actuationCreate(shape as CFDictionary, 0) else { return }
-        _ = actuationPlay(act, motorPointer, 0, min(1.0, max(0.0, level)), 0)
+        let clampedLevel = min(1.0, max(0.0, level))
+        let result = actuationPlay(act, motorPointer, 0, clampedLevel, 0)
+        if result != 0 {
+            // Motor handle can go stale across sleep/wake; reopen and retry once
+            close()
+            if open(), let freshPtr = self.motorPointer {
+                _ = actuationPlay(act, freshPtr, 0, clampedLevel, 0)
+            }
+        }
         Unmanaged<AnyObject>.fromOpaque(act).release()
     }
 }
