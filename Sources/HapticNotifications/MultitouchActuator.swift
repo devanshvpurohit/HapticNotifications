@@ -137,7 +137,7 @@ final class MultitouchActuator: @unchecked Sendable {
             "BaseWaveform": [
                 "Type": "Gaussian",
                 "Amplitude": min(1.0, max(0.0, baseAmplitude)),
-                "DurationMS": min(ms, 25.0)
+                "DurationMS": ms
             ]
         ]
         if !toneDicts.isEmpty {

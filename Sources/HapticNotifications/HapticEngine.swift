@@ -129,34 +129,38 @@ final class HapticEngine: ObservableObject {
 
         let level = intensity
         activeTask = Task { @MainActor in
+            // Short delay so a trackpad button click doesn't mask the first pulse
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            guard !Task.isCancelled else { return }
+
             switch pattern {
             case .crispTap:
-                actuator.play(tones: [(180, 1.0)], baseAmplitude: 0.9, ms: 25, level: level)
+                actuator.play(tones: [(150, 1.0)], baseAmplitude: 0.0, ms: 90, level: level)
 
             case .doublePulse:
-                actuator.play(tones: [(160, 1.0)], baseAmplitude: 0.85, ms: 28, level: level)
-                try? await Task.sleep(nanoseconds: 95_000_000)
+                actuator.play(tones: [(140, 1.0)], baseAmplitude: 0.0, ms: 160, level: level)
+                try? await Task.sleep(nanoseconds: 240_000_000)
                 guard !Task.isCancelled else { return }
-                actuator.play(tones: [(200, 1.0)], baseAmplitude: 0.9, ms: 28, level: level)
+                actuator.play(tones: [(180, 1.0)], baseAmplitude: 0.0, ms: 180, level: level)
 
             case .chime:
-                actuator.play(tones: [(523.25, 0.7), (1046.5, 0.3)], baseAmplitude: 0.25, ms: 90, level: level)
-                try? await Task.sleep(nanoseconds: 105_000_000)
+                actuator.play(tones: [(523.25, 0.7), (1046.5, 0.3)], baseAmplitude: 0.0, ms: 180, level: level)
+                try? await Task.sleep(nanoseconds: 210_000_000)
                 guard !Task.isCancelled else { return }
-                actuator.play(tones: [(783.99, 0.7), (1567.98, 0.3)], baseAmplitude: 0.25, ms: 130, level: level)
+                actuator.play(tones: [(783.99, 0.7), (1567.98, 0.3)], baseAmplitude: 0.0, ms: 240, level: level)
 
             case .heartbeat:
-                actuator.play(tones: [(120, 1.0)], baseAmplitude: 0.8, ms: 40, level: level)
-                try? await Task.sleep(nanoseconds: 130_000_000)
+                actuator.play(tones: [(110, 1.0)], baseAmplitude: 0.0, ms: 180, level: level)
+                try? await Task.sleep(nanoseconds: 260_000_000)
                 guard !Task.isCancelled else { return }
-                actuator.play(tones: [(100, 1.0)], baseAmplitude: 0.65, ms: 55, level: level * 0.85)
+                actuator.play(tones: [(95, 1.0)], baseAmplitude: 0.0, ms: 220, level: level)
 
             case .urgentAlert:
                 for i in 0..<3 {
                     guard !Task.isCancelled else { return }
-                    actuator.play(tones: [(880, 0.6), (440, 0.4)], baseAmplitude: 0.6, ms: 55, level: level)
+                    actuator.play(tones: [(220, 0.5), (880, 0.5)], baseAmplitude: 0.0, ms: 150, level: level)
                     if i < 2 {
-                        try? await Task.sleep(nanoseconds: 110_000_000)
+                        try? await Task.sleep(nanoseconds: 230_000_000)
                     }
                 }
             }
@@ -164,7 +168,7 @@ final class HapticEngine: ObservableObject {
     }
 
     /// Plays a custom single frequency tone on the trackpad motor (for testing/tuning).
-    func playCustomTone(hz: Double, ms: Double = 80) {
+    func playCustomTone(hz: Double, ms: Double = 250) {
         if !motorConnected {
             connectMotor()
         }
@@ -172,7 +176,7 @@ final class HapticEngine: ObservableObject {
             NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .default)
             return
         }
-        actuator.play(tones: [(hz, 1.0)], baseAmplitude: 0.2, ms: ms, level: intensity)
+        actuator.play(tones: [(hz, 1.0)], baseAmplitude: 0.0, ms: ms, level: intensity)
     }
 
     /// Static helper for convenience.
