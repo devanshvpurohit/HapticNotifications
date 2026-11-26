@@ -11,18 +11,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let center = UNUserNotificationCenter.current()
         center.delegate = self
 
-        Task {
-            do {
-                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-                if granted {
-                    print("Notification permission granted")
-                } else {
-                    print("Notification permission not granted")
-                }
-            } catch {
-                print("Notification authorization error: \(error)")
-            }
+        Task { @MainActor in
+            HapticEngine.shared.requestNotificationPermission()
         }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        HapticEngine.shared.refreshNotificationPermission()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

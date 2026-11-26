@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key>
-    <string>en US</string>
+    <string>en</string>
     <key>CFBundleExecutable</key>
     <string>HapticNotifications</string>
     <key>CFBundleIdentifier</key>
@@ -20,8 +20,12 @@
     <string>????</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>12.0</string>
+    <key>NSUserNotificationAlertStyle</key>
+    <string>banner</string>
     <key>NSUserNotificationCenterUsageDescription</key>
-    <string>This app uses notifications to trigger haptic feedback.</string>
+    <string>This app uses notifications to trigger trackpad haptic feedback.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

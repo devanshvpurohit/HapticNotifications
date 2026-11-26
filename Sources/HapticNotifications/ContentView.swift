@@ -22,6 +22,24 @@ struct ContentView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(engine.notificationsAuthorized ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text(engine.notificationStatus)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if !engine.notificationsAuthorized {
+                        Button("Open Settings") {
+                            if let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                        .font(.caption)
+                        .buttonStyle(.link)
+                    }
+                }
             }
 
             // Notification Counter Card

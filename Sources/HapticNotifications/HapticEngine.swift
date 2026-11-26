@@ -1,6 +1,7 @@
 import AppKit
 import AudioToolbox
 import Combine
+import UserNotifications
 
 /// Haptic notification patterns driven directly on the Force Touch trackpad motor.
 enum HapticPattern: String, CaseIterable, Identifiable {
@@ -35,6 +36,8 @@ final class HapticEngine: ObservableObject {
     @Published var playSystemSound: Bool = false
     @Published private(set) var motorConnected: Bool = false
     @Published private(set) var motorStatus: String = "Initializing..."
+    @Published private(set) var notificationsAuthorized: Bool = false
+    @Published private(set) var notificationStatus: String = "Checking..."
 
     private let actuator = MultitouchActuator()
     private var activeTask: Task<Void, Never>?
@@ -58,6 +61,47 @@ final class HapticEngine: ObservableObject {
         activeTask?.cancel()
         actuator.close()
         motorConnected = false
+    }
+
+    func refreshNotificationPermission() {
+        guard Bundle.main.bundleIdentifier != nil else {
+            notificationsAuthorized = false
+            notificationStatus = "Unbundled binary (run .app)"
+            return
+        }
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            let status = settings.authorizationStatus
+            Task { @MainActor in
+                switch status {
+                case .authorized, .provisional:
+                    self.notificationsAuthorized = true
+                    self.notificationStatus = "Notifications Allowed"
+                case .denied:
+                    self.notificationsAuthorized = false
+                    self.notificationStatus = "Notifications Denied (enable in System Settings)"
+                case .notDetermined:
+                    self.notificationsAuthorized = false
+                    self.notificationStatus = "Permission Not Requested"
+                @unknown default:
+                    self.notificationsAuthorized = false
+                    self.notificationStatus = "Unknown Permission State"
+                }
+            }
+        }
+    }
+
+    func requestNotificationPermission() {
+        guard Bundle.main.bundleIdentifier != nil else { return }
+        Task {
+            do {
+                let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+                self.notificationsAuthorized = granted
+                self.notificationStatus = granted ? "Notifications Allowed" : "Notifications Denied (enable in System Settings)"
+            } catch {
+                self.notificationsAuthorized = false
+                self.notificationStatus = "Error: \(error.localizedDescription)"
+            }
+        }
     }
 
     /// Increments notification count and plays the selected haptic pattern.
