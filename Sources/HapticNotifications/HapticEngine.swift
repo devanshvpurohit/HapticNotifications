@@ -166,29 +166,40 @@ final class HapticEngine: ObservableObject {
 
             switch pattern {
             case .crispTap:
-                actuator.play(tones: [(150, 1.0)], baseAmplitude: 0.0, ms: 220, level: level)
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                actuator.play(tones: [], baseAmplitude: 1.0, ms: 20, level: level)
+                try? await Task.sleep(nanoseconds: 35_000_000)
+                guard !Task.isCancelled else { return }
+                actuator.play(tones: [(150, 1.0)], baseAmplitude: 0.0, ms: 200, level: level)
 
             case .doublePulse:
-                actuator.play(tones: [(140, 1.0)], baseAmplitude: 0.0, ms: 320, level: level)
-                try? await Task.sleep(nanoseconds: 420_000_000)
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                actuator.play(tones: [(140, 1.0)], baseAmplitude: 0.0, ms: 280, level: level)
+                try? await Task.sleep(nanoseconds: 380_000_000)
                 guard !Task.isCancelled else { return }
-                actuator.play(tones: [(180, 1.0)], baseAmplitude: 0.0, ms: 360, level: level)
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                actuator.play(tones: [(180, 1.0)], baseAmplitude: 0.0, ms: 320, level: level)
 
             case .chime:
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 actuator.play(tones: [(523.25, 0.7), (1046.5, 0.3)], baseAmplitude: 0.0, ms: 350, level: level)
                 try? await Task.sleep(nanoseconds: 390_000_000)
                 guard !Task.isCancelled else { return }
+                NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
                 actuator.play(tones: [(783.99, 0.7), (1567.98, 0.3)], baseAmplitude: 0.0, ms: 480, level: level)
 
             case .heartbeat:
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 actuator.play(tones: [(110, 1.0)], baseAmplitude: 0.0, ms: 320, level: level)
                 try? await Task.sleep(nanoseconds: 420_000_000)
                 guard !Task.isCancelled else { return }
+                NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                 actuator.play(tones: [(95, 1.0)], baseAmplitude: 0.0, ms: 420, level: level)
 
             case .urgentAlert:
                 for i in 0..<3 {
                     guard !Task.isCancelled else { return }
+                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
                     actuator.play(tones: [(220, 0.5), (880, 0.5)], baseAmplitude: 0.0, ms: 300, level: level)
                     if i < 2 {
                         try? await Task.sleep(nanoseconds: 400_000_000)

@@ -109,11 +109,18 @@ final class NotificationMonitor: ObservableObject {
         detachObserver()
 
         var newObserver: AXObserver?
-        let callback: AXObserverCallback = { _, _, _, refcon in
+        let callback: AXObserverCallback = { _, element, notification, refcon in
             guard let refcon else { return }
             let monitor = Unmanaged<NotificationMonitor>.fromOpaque(refcon).takeUnretainedValue()
+            let notifName = notification as String
+            var roleRef: CFTypeRef?
+            var subroleRef: CFTypeRef?
+            AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+            AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subroleRef)
+            let role = (roleRef as? String) ?? ""
+            let subrole = (subroleRef as? String) ?? ""
             Task { @MainActor in
-                monitor.handleNotificationWindowCreated()
+                monitor.handleAXEvent(name: notifName, role: role, subrole: subrole)
             }
         }
 
@@ -123,14 +130,21 @@ final class NotificationMonitor: ObservableObject {
 
         let appElement = AXUIElementCreateApplication(pid)
         let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        let result = AXObserverAddNotification(
-            newObserver,
-            appElement,
-            kAXWindowCreatedNotification as CFString,
-            selfPtr
-        )
+        let events: [String] = [
+            kAXWindowCreatedNotification as String,
+            kAXCreatedNotification as String,
+            kAXLayoutChangedNotification as String
+        ]
 
-        if result == .success {
+        var attachedAny = false
+        for event in events {
+            let res = AXObserverAddNotification(newObserver, appElement, event as CFString, selfPtr)
+            if res == .success {
+                attachedAny = true
+            }
+        }
+
+        if attachedAny {
             CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(newObserver), .defaultMode)
             self.observer = newObserver
             self.observedPID = pid
@@ -147,11 +161,28 @@ final class NotificationMonitor: ObservableObject {
         isWatching = false
     }
 
-    private func handleNotificationWindowCreated() {
+    private func handleAXEvent(name: String, role: String, subrole: String) {
         guard isEnabled else { return }
+
+        // Only trigger for actual banner/window creations or layout changes with notification elements
+        if name == (kAXLayoutChangedNotification as String) {
+            guard observedPID != 0 else { return }
+            let appElement = AXUIElementCreateApplication(observedPID)
+            var windowsRef: CFTypeRef?
+            let err = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
+            let windows = (windowsRef as? [AnyObject]) ?? []
+            guard err == .success, !windows.isEmpty else { return }
+        } else if name == (kAXCreatedNotification as String) {
+            let isBanner = role == (kAXWindowRole as String) ||
+                           subrole.localizedCaseInsensitiveContains("Banner") ||
+                           subrole.localizedCaseInsensitiveContains("Alert") ||
+                           subrole.localizedCaseInsensitiveContains("Notification")
+            guard isBanner else { return }
+        }
+
         let now = Date()
         // Debounce multiple AX events for the same notification banner
-        guard now.timeIntervalSince(lastTriggerTime) >= 0.9 else { return }
+        guard now.timeIntervalSince(lastTriggerTime) >= 1.0 else { return }
         lastTriggerTime = now
         HapticEngine.shared.recordNotification(source: "macOS Notification")
     }

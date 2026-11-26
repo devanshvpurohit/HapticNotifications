@@ -14,7 +14,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         Task { @MainActor in
             HapticEngine.shared.requestNotificationPermission()
             NotificationMonitor.shared.start()
+            NSApp.activate(ignoringOtherApps: true)
         }
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
